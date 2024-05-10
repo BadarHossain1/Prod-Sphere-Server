@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 
 require('dotenv').config()
 const app = express();
-const port =  process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
 
 
 // Middleware
@@ -22,7 +22,7 @@ app.use(cookieParser());
 //prodSphere
 //XoCRvhJLmas7oHBF
 
-console.log(process.env.DB_USER)
+
 
 
 
@@ -31,28 +31,52 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
 });
 
 async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    try {
+        // Connect the client to the server	(optional starting in v4.7)
+        // await client.connect();
+
+        const queryCollection = client.db('prodSphere').collection('queries');
 
 
 
+        app.post('/AddQuery', async (req, res) => {
+            const queryInfo = req.body;
+            console.log(queryInfo);
+            const result = await queryCollection.insertOne(queryInfo);
+            res.send(result);
 
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+        })
+
+        app.get('/AddQuery', async (req, res) => {
+            const result = await queryCollection.find({}).toArray();
+            res.send(result);
+        })
+
+
+        app.get('/AddQuery/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email)
+            const result = await queryCollection.find({ email }).toArray();
+            res.send(result);
+        })
+
+
+
+        // Send a ping to confirm a successful connection
+        await client.db("admin").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    } finally {
+        // Ensures that the client will close when you finish/error
+        // await client.close();
+    }
 }
 run().catch(console.dir);
 
