@@ -75,6 +75,30 @@ async function run() {
         )
 
 
+        app.get('/recommendationsForMe/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email)
+           const result = await recommendationCollection.find({ creatorEmail: email }).toArray();
+            res.send(result);
+
+        })
+
+        app.patch('/AddQuery/id/:id', async (req, res) => {
+            const id = req.params.id;
+            const updatedInfo = req.body;
+            console.log(updatedInfo);
+            const result = await queryCollection.updateOne({ _id: new ObjectId(id) }, { $set: updatedInfo });
+            res.send(result);
+        })
+
+        app.delete('/AddQuery/id/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const result = await queryCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        })
+
+
         app.get('/AddRecommendation', async (req, res) => {
             const result = await recommendationCollection.find({}).toArray();
             res.send(result);
