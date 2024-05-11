@@ -26,7 +26,7 @@ app.use(cookieParser());
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lblkdq0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -44,6 +44,8 @@ async function run() {
         // await client.connect();
 
         const queryCollection = client.db('prodSphere').collection('queries');
+        const recommendationCollection = client.db('prodSphere').collection('recommendations');
+
 
 
 
@@ -55,6 +57,48 @@ async function run() {
 
         })
 
+        app.post('/AddRecommendation', async (req, res) => {
+            const recommendationInfo = req.body;
+            console.log(recommendationInfo);
+            const result = await recommendationCollection.insertOne(recommendationInfo);
+            res.send(result);
+
+        })
+
+        app.delete('/myRecommendations/:id', async (req, res) => {
+
+            const id = req.params.id;
+            console.log(id);
+            const result = await recommendationCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        }
+        )
+
+
+        app.get('/AddRecommendation', async (req, res) => {
+            const result = await recommendationCollection.find({}).toArray();
+            res.send(result);
+        })
+
+        app.get('/AddRecommendation/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id)
+            const result = await recommendationCollection.find({ id: id }).toArray();
+            res.send(result);
+        })
+
+
+        app.get('/myRecommendations/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email)
+            const result = await recommendationCollection.find({ RecommenderEmail: email }).toArray();
+            res.send(result);
+
+        })
+
+
+
+
         app.get('/AddQuery', async (req, res) => {
             const result = await queryCollection.find({}).toArray();
             res.send(result);
@@ -65,6 +109,13 @@ async function run() {
             const email = req.params.email;
             console.log(email)
             const result = await queryCollection.find({ email }).toArray();
+            res.send(result);
+        })
+
+        app.get('/query/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const result = await queryCollection.findOne({ _id: new ObjectId(id) });
             res.send(result);
         })
 
