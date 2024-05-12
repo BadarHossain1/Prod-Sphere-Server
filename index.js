@@ -3,6 +3,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 
+
 require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
@@ -38,6 +39,33 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+const logger = async (req, res , next) => {
+    console.log('logging', req.host, req.originalUrl);
+    next();
+}
+
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies?.token;
+    console.log('value of token in middleware', token); 
+    if(!token){
+        res.status(401).send('Unauthorized');
+        return;
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+
+        if(err){
+            console.log('error', err);
+            res.status(401).send('Unauthorized');
+            return;
+        }
+        console.log('decoded', decoded);
+        next();
+    });
+    
+
+}
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -49,7 +77,7 @@ async function run() {
 
 
 
-        app.post('/AddQuery', async (req, res) => {
+        app.post('/AddQuery', logger, verifyToken,  async (req, res) => {
             const queryInfo = req.body;
             console.log(queryInfo);
             const result = await queryCollection.insertOne(queryInfo);
@@ -57,7 +85,7 @@ async function run() {
 
         })
 
-        app.post('/AddRecommendation', async (req, res) => {
+        app.post('/AddRecommendation',  async (req, res) => {
             const recommendationInfo = req.body;
             console.log(recommendationInfo);
             const result = await recommendationCollection.insertOne(recommendationInfo);
@@ -77,18 +105,17 @@ async function run() {
 
         //authentication related api
 
-        app.post('/jwt', (req, res) => {
+        app.post('/jwt', logger,  (req, res) => {
             const user = req.body;
 
             console.log(user);
 
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-                expiresIn: '1h'
-            });
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET);
 
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: false,
+                sameSite: 'none',
                 
             }).send({success: true});
             res.send(token);
@@ -97,7 +124,7 @@ async function run() {
 
 
 
-        app.get('/recommendationsForMe/:email', async (req, res) => {
+        app.get('/recommendationsForMe/:email', logger, verifyToken,  async (req, res) => {
             const email = req.params.email;
             console.log(email)
            const result = await recommendationCollection.find({ creatorEmail: email }).toArray();
@@ -105,7 +132,7 @@ async function run() {
 
         })
 
-        app.patch('/AddQuery/id/:id', async (req, res) => {
+        app.patch('/AddQuery/id/:id', logger, verifyToken,  async (req, res) => {
             const id = req.params.id;
             const updatedInfo = req.body;
             console.log(updatedInfo);
@@ -121,12 +148,12 @@ async function run() {
         })
 
 
-        app.get('/AddRecommendation', async (req, res) => {
+        app.get('/AddRecommendation',  async (req, res) => {
             const result = await recommendationCollection.find({}).toArray();
             res.send(result);
         })
 
-        app.get('/AddRecommendation/:id', async (req, res) => {
+        app.get('/AddRecommendation/:id', logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             console.log(id)
             const result = await recommendationCollection.find({ id: id }).toArray();
@@ -151,15 +178,16 @@ async function run() {
         })
 
 
-        app.get('/AddQuery/:email', async (req, res) => {
+        app.get('/AddQuery/:email',   async (req, res) => {
             const email = req.params.email;
             console.log(email)
-            console.log('token', req.cookies.token);
+            // console.log('token', req.cookies.token);
             const result = await queryCollection.find({ email }).toArray();
             res.send(result);
+            
         })
 
-        app.get('/query/:id', async (req, res) => {
+        app.get('/query/:id',  async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const result = await queryCollection.findOne({ _id: new ObjectId(id) });
