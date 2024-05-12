@@ -10,20 +10,20 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 
-app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
-    credentials: true
-}));
+app.use(
+    cors({
+      origin: [
+        "http://localhost:5173",
+        "http://localhost:5174",
+
+        ,
+      ],
+      credentials: true,
+    })
+  );
 
 app.use(express.json());
 app.use(cookieParser());
-
-
-//prodSphere
-//XoCRvhJLmas7oHBF
-
-
-
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -73,6 +73,28 @@ async function run() {
             res.send(result);
         }
         )
+
+
+        //authentication related api
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+
+            console.log(user);
+
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: '1h'
+            });
+
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: false,
+                
+            }).send({success: true});
+            res.send(token);
+        })
+
+
 
 
         app.get('/recommendationsForMe/:email', async (req, res) => {
@@ -132,6 +154,7 @@ async function run() {
         app.get('/AddQuery/:email', async (req, res) => {
             const email = req.params.email;
             console.log(email)
+            console.log('token', req.cookies.token);
             const result = await queryCollection.find({ email }).toArray();
             res.send(result);
         })
@@ -159,9 +182,9 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('doctor is running')
+    res.send('prodSphere is running')
 })
 
 app.listen(port, () => {
-    console.log(`Car Doctor is running on port http://localhost:${port}`)
+    console.log(`prodSphere is running on port http://localhost:${port}`)
 })
