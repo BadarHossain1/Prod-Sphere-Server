@@ -13,15 +13,15 @@ const port = process.env.PORT || 5000;
 
 app.use(
     cors({
-      origin: [
-        "http://localhost:5173",
-        "http://localhost:5174",
+        origin: [
+            "http://localhost:5173",
+            "http://localhost:5174",
 
-        ,
-      ],
-      credentials: true,
+            ,
+        ],
+        credentials: true,
     })
-  );
+);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -40,29 +40,30 @@ const client = new MongoClient(uri, {
 });
 
 
-const logger = async (req, res , next) => {
+const logger = async (req, res, next) => {
     console.log('logging', req.host, req.originalUrl);
     next();
 }
 
 const verifyToken = async (req, res, next) => {
     const token = req.cookies?.token;
-    console.log('value of token in middleware', token); 
-    if(!token){
+    console.log('value of token in middleware', token);
+    if (!token) {
         res.status(401).send('Unauthorized');
         return;
     }
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
 
-        if(err){
+        if (err) {
             console.log('error', err);
             res.status(401).send('Unauthorized');
             return;
         }
         console.log('decoded', decoded);
+        req.user = decoded;
         next();
     });
-    
+
 
 }
 
@@ -77,7 +78,7 @@ async function run() {
 
 
 
-        app.post('/AddQuery', logger, verifyToken,  async (req, res) => {
+        app.post('/AddQuery', logger, verifyToken, async (req, res) => {
             const queryInfo = req.body;
             console.log(queryInfo);
             const result = await queryCollection.insertOne(queryInfo);
@@ -85,7 +86,7 @@ async function run() {
 
         })
 
-        app.post('/AddRecommendation',  async (req, res) => {
+        app.post('/AddRecommendation', async (req, res) => {
             const recommendationInfo = req.body;
             console.log(recommendationInfo);
             const result = await recommendationCollection.insertOne(recommendationInfo);
@@ -105,34 +106,54 @@ async function run() {
 
         //authentication related api
 
-        app.post('/jwt', logger,  (req, res) => {
+        app.post('/jwt', logger, (req, res) => {
             const user = req.body;
 
             console.log(user);
 
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET);
 
-            res.cookie('token', token, {
+            // res.cookie('token', token, {
+            //     httpOnly: true,
+            //     secure: false,
+            //     sameSite: 'none',
+
+            // }).send({success: true});
+            const cookieOptions = {
                 httpOnly: true,
-                secure: false,
-                sameSite: 'none',
-                
-            }).send({success: true});
-            res.send(token);
-        })
+                secure: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+            };  
+            res.cookie('token', token, cookieOptions).send({ success: true });
+        }
+
+        )
+
+        app.post("/logout", async (req, res) => {
+            const user = req.body;
+            console.log("logging out", user);
+            res
+              .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+              .send({ success: true });
+          });
 
 
 
 
-        app.get('/recommendationsForMe/:email', logger, verifyToken,  async (req, res) => {
+        app.get('/recommendationsForMe/:email', logger, verifyToken, async (req, res) => {
             const email = req.params.email;
+
+            if (req.user.email !== email) {
+                res.status(401).send('Unauthorized');
+                return;
+            }
             console.log(email)
-           const result = await recommendationCollection.find({ creatorEmail: email }).toArray();
+            const result = await recommendationCollection.find({ creatorEmail: email }).toArray();
             res.send(result);
 
         })
 
-        app.patch('/AddQuery/id/:id', logger, verifyToken,  async (req, res) => {
+        app.patch('/AddQuery/id/:id', logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedInfo = req.body;
             console.log(updatedInfo);
@@ -148,7 +169,7 @@ async function run() {
         })
 
 
-        app.get('/AddRecommendation',  async (req, res) => {
+        app.get('/AddRecommendation', async (req, res) => {
             const result = await recommendationCollection.find({}).toArray();
             res.send(result);
         })
@@ -178,23 +199,27 @@ async function run() {
         })
 
 
-        app.get('/AddQuery/:email',   async (req, res) => {
+        app.get('/AddQuery/:email', logger, verifyToken, async (req, res) => {
             const email = req.params.email;
             console.log(email)
+            if (req.user.email !== email) {
+                res.status(401).send('Unauthorized');
+                return;
+            }
             // console.log('token', req.cookies.token);
             const result = await queryCollection.find({ email }).toArray();
             res.send(result);
-            
+
         })
 
-        app.get('/query/:id',  async (req, res) => {
+        app.get('/query/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const result = await queryCollection.findOne({ _id: new ObjectId(id) });
             res.send(result);
         })
 
-       
+
 
 
 
