@@ -16,6 +16,9 @@ app.use(
         origin: [
             "http://localhost:5173",
             "http://localhost:5174",
+            "https://product-sphere.web.app",
+            "https://product-sphere.firebaseapp.com",
+            "https://prod-sphere.netlify.app",
 
             ,
         ],
