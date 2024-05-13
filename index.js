@@ -15,10 +15,12 @@ app.use(
     cors({
         origin: [
             "http://localhost:5173",
-            "http://localhost:5174",
-            "https://product-sphere.web.app",
-            "https://product-sphere.firebaseapp.com",
+            "http://localhost:5174", 
+            
+            
             "https://prod-sphere.netlify.app",
+         
+            "https://66416e7d82f5fe4352049eba--prod-sphere.netlify.app"
 
             ,
         ],
@@ -124,9 +126,9 @@ async function run() {
             // }).send({success: true});
             const cookieOptions = {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
+                secure: process.env.NODE_ENV === "production"?true:false,
                 sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-            };  
+            };
             res.cookie('token', token, cookieOptions).send({ success: true });
         }
 
@@ -136,9 +138,9 @@ async function run() {
             const user = req.body;
             console.log("logging out", user);
             res
-              .clearCookie("token", { ...cookieOptions, maxAge: 0 })
-              .send({ success: true });
-          });
+                .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+                .send({ success: true });
+        });
 
 
 
@@ -202,20 +204,20 @@ async function run() {
         })
 
 
-        app.get('/AddQuery/:email', logger, verifyToken, async (req, res) => {
+        app.get('/AddQuery/:email',  async (req, res) => {
             const email = req.params.email;
             console.log(email)
             if (req.user.email !== email) {
                 res.status(401).send('Unauthorized');
                 return;
             }
-            // console.log('token', req.cookies.token);
+            console.log('token', req.cookies.token);
             const result = await queryCollection.find({ email }).toArray();
             res.send(result);
 
         })
 
-        app.get('/query/:id', async (req, res) => {
+        app.get('/query/:id', logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const result = await queryCollection.findOne({ _id: new ObjectId(id) });
@@ -227,7 +229,7 @@ async function run() {
 
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
